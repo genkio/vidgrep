@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import sys
 from pathlib import Path
 
 os.environ.setdefault("HF_HUB_VERBOSITY", "error")  # silence hub token nag on every run
@@ -54,6 +55,14 @@ def open_db(path: Path | str = DEFAULT_DB) -> sqlite3.Connection:
         );
     """)
     return db
+
+
+def parse_jobs(spec: list[str]) -> list[tuple[str, Path]]:
+    if len(spec) == 1:
+        return [(spec[0], Path("output"))]
+    if len(spec) % 2 != 0:
+        sys.exit('descriptions and output folders must come in pairs: "desc a" ./a "desc b" ./b')
+    return [(spec[i], Path(spec[i + 1])) for i in range(0, len(spec), 2)]
 
 
 def embed_text(model, tokenizer, device: str, query: str) -> torch.Tensor:

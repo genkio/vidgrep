@@ -4,7 +4,16 @@ import subprocess
 import sys
 from pathlib import Path
 
-from vidgrep.common import DEFAULT_DB, embed_text, fmt_time, get_device, load_clip, open_db, search_shots
+from vidgrep.common import (
+    DEFAULT_DB,
+    embed_text,
+    fmt_time,
+    get_device,
+    load_clip,
+    open_db,
+    parse_jobs,
+    search_shots,
+)
 
 
 def export_clips(results: list[tuple[str, float, float, float]], out: Path, pad: float) -> None:
@@ -34,22 +43,35 @@ def export_clips(results: list[tuple[str, float, float, float]], out: Path, pad:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Search indexed videos and cut the results into clips.")
-    ap.add_argument("query")
-    ap.add_argument("-k", type=int, default=10, help="number of clips")
+    ap = argparse.ArgumentParser(
+        description="Search indexed videos and cut the results into clips.",
+        epilog='multiple descriptions: vidgrep cut "desc a" ./a "desc b" ./b',
+    )
+    ap.add_argument(
+        "spec",
+        nargs="+",
+        metavar="DESC [DIR]",
+        help="description of the clips you want, followed by its output folder"
+        " (a single description defaults to ./output)",
+    )
+    ap.add_argument("-k", type=int, default=10, help="number of clips per description")
     ap.add_argument("--db", type=Path, default=DEFAULT_DB)
-    ap.add_argument("--out", type=Path, default=Path("output"), help="clip output folder")
     ap.add_argument("--pad", type=float, default=0.5, help="seconds added before/after each clip")
     args = ap.parse_args()
+
+    jobs = parse_jobs(args.spec)
 
     if not shutil.which("ffmpeg"):
         sys.exit("ffmpeg not found, install with: brew install ffmpeg")
 
     db = open_db(args.db)
     if db.execute("SELECT count(*) FROM shots").fetchone()[0] == 0:
-        sys.exit("index is empty, run index.py first")
+        sys.exit("index is empty, run vidgrep index first")
 
     device = get_device()
     model, _, tokenizer = load_clip(device)
-    results = search_shots(db, embed_text(model, tokenizer, device, args.query), args.k)
-    export_clips(results, args.out, args.pad)
+    for desc, out in jobs:
+        if len(jobs) > 1:
+            print(f"== {desc} -> {out}/")
+        results = search_shots(db, embed_text(model, tokenizer, device, desc), args.k)
+        export_clips(results, out, args.pad)

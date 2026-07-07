@@ -3,17 +3,18 @@ import shutil
 import sys
 from pathlib import Path
 
-from vidgrep.common import DEFAULT_DB, MODEL_NAME, embed_text, get_device, load_clip, open_db, search_shots
+from vidgrep.common import (
+    DEFAULT_DB,
+    MODEL_NAME,
+    embed_text,
+    get_device,
+    load_clip,
+    open_db,
+    parse_jobs,
+    search_shots,
+)
 from vidgrep.cut import export_clips
 from vidgrep.index import ensure_indexed, find_videos
-
-
-def parse_jobs(spec: list[str]) -> list[tuple[str, Path]]:
-    if len(spec) == 1:
-        return [(spec[0], Path("output"))]
-    if len(spec) % 2 != 0:
-        sys.exit('descriptions and output folders must come in pairs: "desc a" ./a "desc b" ./b')
-    return [(spec[i], Path(spec[i + 1])) for i in range(0, len(spec), 2)]
 
 
 def main() -> None:

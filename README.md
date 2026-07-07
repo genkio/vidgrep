@@ -36,8 +36,9 @@ vidgrep index ~/Videos/
 vidgrep search "two people kissing in a coffee shop"
 vidgrep search "a dog running on a beach" -k 20
 
-# cut top results into ./output/*.mp4
+# cut top results into ./output/*.mp4 (or several descriptions, each with its own folder)
 vidgrep cut "a dog running on a beach" -k 5 --pad 1
+vidgrep cut "a dog running on a beach" ./dog "sunset over water" ./sunset
 ```
 
 Search output: score (cosine, ~0.3 = strong hit, rank matters not the number), file, time range, ready-to-paste mpv command.
@@ -65,7 +66,7 @@ vidgrep index ~/Videos/trips/ --db trips.db
 vidgrep search "sunset over water" --db trips.db
 ```
 
-**Where do clips go?** `./output` in the current directory by default, padded by 0.5 s of context (`--pad` to change). `cut` takes `--out`; `oneshot` takes the folder right after each description.
+**Where do clips go?** `./output` in the current directory by default, padded by 0.5 s of context (`--pad` to change). Both `cut` and `oneshot` take an output folder right after each description.
 
 ## Tuning
 
