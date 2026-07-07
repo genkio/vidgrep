@@ -16,6 +16,8 @@ DEFAULT_DB = Path(__file__).parent / "index.db"
 
 
 def get_device() -> str:
+    if torch.cuda.is_available():
+        return "cuda"
     return "mps" if torch.backends.mps.is_available() else "cpu"
 
 

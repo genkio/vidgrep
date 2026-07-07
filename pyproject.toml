@@ -2,6 +2,7 @@
 name = "vidgrep"
 version = "0.1.0"
 description = "Natural-language search over local video files (CLIP + sqlite-vec, fully local)"
+license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
     "numpy",
