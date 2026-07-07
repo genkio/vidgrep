@@ -21,7 +21,7 @@ def main() -> None:
         print(USAGE)
         return
     cmd = args[0]
-    # import inside the branch: keeps --help instant, torch loads only when needed
+    # lazy imports keep --help instant, torch loads only when a command runs
     if cmd == "index":
         from vidgrep.index import main as cmd_main
     elif cmd == "search":
