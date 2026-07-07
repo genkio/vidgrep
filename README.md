@@ -31,6 +31,9 @@ uv run search.py "a dog running on a beach" -k 20
 # cut top results into ./output/*.mp4 (needs ffmpeg: brew install ffmpeg)
 uv run cut.py "a dog running on a beach" -k 5 --pad 1
 
+# index + cut in one go (only searches the videos under the given path)
+uv run oneshot.py ~/Videos/trips/ "sunset over water" -k 5
+
 ```
 
 Output: score (cosine, ~0.3 = strong hit, rank matters not the number), file, time range, ready-to-paste mpv command.

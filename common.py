@@ -60,11 +60,19 @@ def embed_text(model, tokenizer, device: str, query: str) -> torch.Tensor:
     return (feat / feat.norm(dim=-1, keepdim=True))[0].cpu()
 
 
-def search_shots(db: sqlite3.Connection, query_vec: torch.Tensor, k: int) -> list[tuple[str, float, float, float]]:
-    hits = db.execute(
-        "SELECT rowid, distance FROM vec_shots WHERE embedding MATCH ? AND k = ? ORDER BY distance",
-        (serialize_float32(query_vec.tolist()), k),
-    ).fetchall()
+def search_shots(
+    db: sqlite3.Connection,
+    query_vec: torch.Tensor,
+    k: int,
+    video_ids: list[int] | None = None,
+) -> list[tuple[str, float, float, float]]:
+    sql = "SELECT rowid, distance FROM vec_shots WHERE embedding MATCH ? AND k = ?"
+    params: list = [serialize_float32(query_vec.tolist()), k]
+    if video_ids:
+        placeholders = ",".join("?" * len(video_ids))
+        sql += f" AND rowid IN (SELECT id FROM shots WHERE video_id IN ({placeholders}))"
+        params.extend(video_ids)
+    hits = db.execute(sql + " ORDER BY distance", params).fetchall()
     results = []
     for rowid, dist in hits:
         path, start, end = db.execute(

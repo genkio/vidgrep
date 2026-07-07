@@ -7,6 +7,32 @@ from pathlib import Path
 from common import DEFAULT_DB, embed_text, fmt_time, get_device, load_clip, open_db, search_shots
 
 
+def export_clips(results: list[tuple[str, float, float, float]], out: Path, pad: float) -> None:
+    out.mkdir(parents=True, exist_ok=True)
+    for rank, (path, start, end, score) in enumerate(results, 1):
+        src = Path(path)
+        if not src.exists():
+            print(f"{rank:2d}  source moved or deleted, skipped: {src}")
+            continue
+        cut_start = max(0.0, start - pad)
+        duration = end + pad - cut_start
+        clip = out / f"{rank:02d}_{src.stem}_{int(start)}s.mp4"
+        cmd = [
+            "ffmpeg", "-y", "-loglevel", "error",
+            "-ss", f"{cut_start:.3f}", "-i", str(src), "-t", f"{duration:.3f}",
+            # re-encode: stream copy would snap to keyframes and miss the shot start
+            "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+            "-c:a", "aac",
+            str(clip),
+        ]
+        try:
+            subprocess.run(cmd, check=True)
+        except subprocess.CalledProcessError:
+            print(f"{rank:2d}  ffmpeg failed on {src.name}, skipped")
+            continue
+        print(f"{rank:2d}  {score:.3f}  {clip}  ({fmt_time(start)}-{fmt_time(end)})")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Search indexed videos and cut the results into clips.")
     ap.add_argument("query")
@@ -26,30 +52,7 @@ def main() -> None:
     device = get_device()
     model, _, tokenizer = load_clip(device)
     results = search_shots(db, embed_text(model, tokenizer, device, args.query), args.k)
-
-    args.out.mkdir(parents=True, exist_ok=True)
-    for rank, (path, start, end, score) in enumerate(results, 1):
-        src = Path(path)
-        if not src.exists():
-            print(f"{rank:2d}  source moved or deleted, skipped: {src}")
-            continue
-        cut_start = max(0.0, start - args.pad)
-        duration = end + args.pad - cut_start
-        clip = args.out / f"{rank:02d}_{src.stem}_{int(start)}s.mp4"
-        cmd = [
-            "ffmpeg", "-y", "-loglevel", "error",
-            "-ss", f"{cut_start:.3f}", "-i", str(src), "-t", f"{duration:.3f}",
-            # re-encode: stream copy would snap to keyframes and miss the shot start
-            "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
-            "-c:a", "aac",
-            str(clip),
-        ]
-        try:
-            subprocess.run(cmd, check=True)
-        except subprocess.CalledProcessError:
-            print(f"{rank:2d}  ffmpeg failed on {src.name}, skipped")
-            continue
-        print(f"{rank:2d}  {score:.3f}  {clip}  ({fmt_time(start)}-{fmt_time(end)})")
+    export_clips(results, args.out, args.pad)
 
 
 if __name__ == "__main__":
