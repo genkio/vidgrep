@@ -1,6 +1,6 @@
 [project]
 name = "vidgrep"
-version = "0.1.0"
+version = "0.2.0"
 description = "Natural-language search over local video files (CLIP + sqlite-vec, fully local)"
 readme = "README.md"
 license = "MIT"

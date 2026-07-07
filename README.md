@@ -21,6 +21,14 @@ First run downloads CLIP weights (~1.7 GB) to `~/.cache`. Optional: `brew instal
 # (-k = clips per video; for the global top-k afterwards, run vidgrep cut - index is already built)
 vidgrep oneshot ~/Videos/trips/ "sunset over water" -k 5
 
+# several descriptions in one pass, each with its own output folder
+# (indexing dominates the cost, extra descriptions are nearly free)
+vidgrep oneshot ~/Videos "a dog jumping into a lake" ./dog "sunset over water" ./sunset
+
+# long unattended runs: bad files are skipped and listed at the end, re-run to retry;
+# caffeinate keeps the mac awake
+caffeinate -i vidgrep oneshot ~/Videos "a dog jumping into a lake" ./dog
+
 # index one file, or a folder (recursive) - slow, one-time, resumable
 vidgrep index ~/Videos/
 
@@ -57,7 +65,7 @@ vidgrep index ~/Videos/trips/ --db trips.db
 vidgrep search "sunset over water" --db trips.db
 ```
 
-**Where do clips go?** `cut` and `oneshot` write to `./output` in the current directory (`--out` to change), padding each clip by 0.5 s of context (`--pad` to change).
+**Where do clips go?** `./output` in the current directory by default, padded by 0.5 s of context (`--pad` to change). `cut` takes `--out`; `oneshot` takes the folder right after each description.
 
 ## Tuning
 
