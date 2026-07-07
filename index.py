@@ -127,18 +127,22 @@ def purge_video(db, video_id: int) -> None:
     db.commit()
 
 
+def ensure_indexed(db, model, preprocess, device: str, path: Path, label: str | None = None) -> None:
+    label = label or path.name
+    row = db.execute("SELECT id, mtime FROM videos WHERE path = ?", (str(path),)).fetchone()
+    if row:
+        if row[1] == path.stat().st_mtime:
+            print(f"{label}  already indexed, skipping")
+            return
+        purge_video(db, row[0])
+    t0 = time.time()
+    n = index_video(db, model, preprocess, device, path)
+    print(f"{label}  {n} shots  {time.time() - t0:.0f}s")
+
+
 def index_all(db, model, preprocess, device: str, videos: list[Path]) -> None:
     for i, path in enumerate(videos, 1):
-        label = f"[{i}/{len(videos)}] {path.name}"
-        row = db.execute("SELECT id, mtime FROM videos WHERE path = ?", (str(path),)).fetchone()
-        if row:
-            if row[1] == path.stat().st_mtime:
-                print(f"{label}  already indexed, skipping")
-                continue
-            purge_video(db, row[0])
-        t0 = time.time()
-        n = index_video(db, model, preprocess, device, path)
-        print(f"{label}  {n} shots  {time.time() - t0:.0f}s")
+        ensure_indexed(db, model, preprocess, device, path, f"[{i}/{len(videos)}] {path.name}")
 
 
 def main() -> None:

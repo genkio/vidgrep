@@ -31,7 +31,8 @@ uv run search.py "a dog running on a beach" -k 20
 # cut top results into ./output/*.mp4 (needs ffmpeg: brew install ffmpeg)
 uv run cut.py "a dog running on a beach" -k 5 --pad 1
 
-# index + cut in one go (only searches the videos under the given path)
+# index + cut in one go, one video at a time: clips appear as each video finishes
+# (-k = clips per video; for the global top-k afterwards, run cut.py - index is already built)
 uv run oneshot.py ~/Videos/trips/ "sunset over water" -k 5
 
 ```

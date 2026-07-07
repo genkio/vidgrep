@@ -5,14 +5,16 @@ from pathlib import Path
 
 from common import DEFAULT_DB, MODEL_NAME, embed_text, get_device, load_clip, open_db, search_shots
 from cut import export_clips
-from index import find_videos, index_all
+from index import ensure_indexed, find_videos
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Index video(s) and cut clips matching a description, in one go.")
+    ap = argparse.ArgumentParser(
+        description="Index video(s) and cut clips matching a description, one video at a time."
+    )
     ap.add_argument("path", type=Path, help="video file, or folder searched recursively")
     ap.add_argument("query", help="description of the clips you want")
-    ap.add_argument("-k", type=int, default=10, help="number of clips")
+    ap.add_argument("-k", type=int, default=10, help="number of clips per video")
     ap.add_argument("--db", type=Path, default=DEFAULT_DB)
     ap.add_argument("--out", type=Path, default=Path("output"), help="clip output folder")
     ap.add_argument("--pad", type=float, default=0.5, help="seconds added before/after each clip")
@@ -29,20 +31,16 @@ def main() -> None:
     print(f"{len(videos)} video(s), {MODEL_NAME} on {device}")
     model, preprocess, tokenizer = load_clip(device)
     db = open_db(args.db)
+    query_vec = embed_text(model, tokenizer, device, args.query)
 
-    index_all(db, model, preprocess, device, videos)
-
-    placeholders = ",".join("?" * len(videos))
-    video_ids = [
-        r[0]
-        for r in db.execute(
-            f"SELECT id FROM videos WHERE path IN ({placeholders})",
-            [str(p) for p in videos],
-        )
-    ]
-    # scope to the given path: a shared index may hold unrelated videos
-    results = search_shots(db, embed_text(model, tokenizer, device, args.query), args.k, video_ids)
-    export_clips(results, args.out, args.pad)
+    # cut per video so first clips appear without waiting for the full run
+    for i, path in enumerate(videos, 1):
+        ensure_indexed(db, model, preprocess, device, path, f"[{i}/{len(videos)}] {path.name}")
+        row = db.execute("SELECT id FROM videos WHERE path = ?", (str(path),)).fetchone()
+        if row is None:
+            continue
+        results = search_shots(db, query_vec, args.k, [row[0]])
+        export_clips(results, args.out, args.pad)
 
 
 if __name__ == "__main__":
