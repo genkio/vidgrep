@@ -4,7 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from common import DEFAULT_DB, embed_text, fmt_time, get_device, load_clip, open_db, search_shots
+from vidgrep.common import DEFAULT_DB, embed_text, fmt_time, get_device, load_clip, open_db, search_shots
 
 
 def export_clips(results: list[tuple[str, float, float, float]], out: Path, pad: float) -> None:
@@ -53,7 +53,3 @@ def main() -> None:
     model, _, tokenizer = load_clip(device)
     results = search_shots(db, embed_text(model, tokenizer, device, args.query), args.k)
     export_clips(results, args.out, args.pad)
-
-
-if __name__ == "__main__":
-    main()

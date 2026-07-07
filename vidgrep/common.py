@@ -12,7 +12,7 @@ from sqlite_vec import serialize_float32
 MODEL_NAME = "ViT-L-14"
 PRETRAINED = "laion2b_s32b_b82k"
 EMBED_DIM = 768
-DEFAULT_DB = Path(__file__).parent / "index.db"
+DEFAULT_DB = Path.home() / ".vidgrep" / "index.db"
 
 
 def get_device() -> str:
@@ -30,7 +30,9 @@ def load_clip(device: str):
 
 
 def open_db(path: Path | str = DEFAULT_DB) -> sqlite3.Connection:
-    db = sqlite3.connect(str(path))
+    p = Path(path).expanduser()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    db = sqlite3.connect(str(p))
     db.enable_load_extension(True)
     sqlite_vec.load(db)
     db.enable_load_extension(False)

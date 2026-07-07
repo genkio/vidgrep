@@ -2,6 +2,7 @@
 name = "vidgrep"
 version = "0.1.0"
 description = "Natural-language search over local video files (CLIP + sqlite-vec, fully local)"
+readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
@@ -13,3 +14,10 @@ dependencies = [
     "sqlite-vec>=0.1.6",
     "torch>=2.3",
 ]
+
+[project.scripts]
+vidgrep = "vidgrep.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

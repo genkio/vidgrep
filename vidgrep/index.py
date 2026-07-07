@@ -9,7 +9,7 @@ from PIL import Image
 from scenedetect import ContentDetector, detect
 from sqlite_vec import serialize_float32
 
-from common import DEFAULT_DB, MODEL_NAME, get_device, load_clip, open_db
+from vidgrep.common import DEFAULT_DB, MODEL_NAME, get_device, load_clip, open_db
 
 VIDEO_EXTS = {".avi", ".m4v", ".mkv", ".mov", ".mp4", ".mpeg", ".mpg", ".ts", ".webm", ".wmv"}
 MAX_UNIT_S = 20.0
@@ -160,7 +160,3 @@ def main() -> None:
     model, preprocess, _ = load_clip(device)
     db = open_db(args.db)
     index_all(db, model, preprocess, device, videos)
-
-
-if __name__ == "__main__":
-    main()

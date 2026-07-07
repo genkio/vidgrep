@@ -3,9 +3,9 @@ import shutil
 import sys
 from pathlib import Path
 
-from common import DEFAULT_DB, MODEL_NAME, embed_text, get_device, load_clip, open_db, search_shots
-from cut import export_clips
-from index import ensure_indexed, find_videos
+from vidgrep.common import DEFAULT_DB, MODEL_NAME, embed_text, get_device, load_clip, open_db, search_shots
+from vidgrep.cut import export_clips
+from vidgrep.index import ensure_indexed, find_videos
 
 
 def main() -> None:
@@ -41,7 +41,3 @@ def main() -> None:
             continue
         results = search_shots(db, query_vec, args.k, [row[0]])
         export_clips(results, args.out, args.pad)
-
-
-if __name__ == "__main__":
-    main()

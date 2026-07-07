@@ -2,7 +2,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from common import DEFAULT_DB, embed_text, fmt_time, get_device, load_clip, open_db, search_shots
+from vidgrep.common import DEFAULT_DB, embed_text, fmt_time, get_device, load_clip, open_db, search_shots
 
 
 def main() -> None:
@@ -23,7 +23,3 @@ def main() -> None:
     for rank, (path, start, end, score) in enumerate(results, 1):
         print(f"{rank:2d}  {score:.3f}  {Path(path).name}  {fmt_time(start)}-{fmt_time(end)}")
         print(f'    mpv --start={int(start)} "{path}"')
-
-
-if __name__ == "__main__":
-    main()
