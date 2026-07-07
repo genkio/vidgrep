@@ -1,0 +1,14 @@
+[project]
+name = "vidgrep"
+version = "0.1.0"
+description = "Natural-language search over local video files (CLIP + sqlite-vec, fully local)"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "open-clip-torch>=2.24",
+    "opencv-python>=4.9",
+    "pillow",
+    "scenedetect>=0.6.3",
+    "sqlite-vec>=0.1.6",
+    "torch>=2.3",
+]
