@@ -8,7 +8,7 @@ Natural-language search over local video files. Fully local: no cloud, no subtit
 2. `search.py` embeds your phrase with CLIP (text encoder, same vector space), runs nearest-neighbor over the stored vectors, prints timestamps.
 3. `cut.py` runs the same search, then ffmpeg cuts each hit into a standalone clip.
 
-No training anywhere. CLIP arrives pre-trained; first run downloads weights (~600 MB) to `~/.cache`.
+No training anywhere. CLIP arrives pre-trained; first run downloads weights (~1.7 GB for the default ViT-L-14) to `~/.cache`.
 
 ## Setup
 
@@ -56,7 +56,7 @@ uv run search.py "sunset over water" --db trips.db
 
 Constants at the top of `index.py` / `common.py`:
 
-- `MODEL_NAME` / `PRETRAINED`: `ViT-B-32` is fast; `ViT-L-14` (`EMBED_DIM = 768`) is slower + better. Changing models requires re-indexing.
+- `MODEL_NAME` / `PRETRAINED`: `ViT-L-14` (default) is accurate; `ViT-B-32` (`EMBED_DIM = 512`) indexes ~4x faster, weaker results. Changing models requires re-indexing (delete `index.db`).
 - `MAX_UNIT_S` / `SPLIT_STEP_S`: long shots get one sample per 10 s.
 - `FALLBACK_WINDOW_S`: window size for footage with no scene cuts (e.g. GoPro).
 

@@ -9,9 +9,9 @@ import sqlite_vec
 import torch
 from sqlite_vec import serialize_float32
 
-MODEL_NAME = "ViT-B-32"
-PRETRAINED = "laion2b_s34b_b79k"
-EMBED_DIM = 512
+MODEL_NAME = "ViT-L-14"
+PRETRAINED = "laion2b_s32b_b82k"
+EMBED_DIM = 768
 DEFAULT_DB = Path(__file__).parent / "index.db"
 
 
