@@ -1,9 +1,13 @@
+import os
 import sqlite3
 from pathlib import Path
+
+os.environ.setdefault("HF_HUB_VERBOSITY", "error")  # silence hub token nag on every run
 
 import open_clip
 import sqlite_vec
 import torch
+from sqlite_vec import serialize_float32
 
 MODEL_NAME = "ViT-B-32"
 PRETRAINED = "laion2b_s34b_b79k"
@@ -46,6 +50,29 @@ def open_db(path: Path | str = DEFAULT_DB) -> sqlite3.Connection:
         );
     """)
     return db
+
+
+def embed_text(model, tokenizer, device: str, query: str) -> torch.Tensor:
+    with torch.no_grad():
+        feat = model.encode_text(tokenizer([query]).to(device))
+    return (feat / feat.norm(dim=-1, keepdim=True))[0].cpu()
+
+
+def search_shots(db: sqlite3.Connection, query_vec: torch.Tensor, k: int) -> list[tuple[str, float, float, float]]:
+    hits = db.execute(
+        "SELECT rowid, distance FROM vec_shots WHERE embedding MATCH ? AND k = ? ORDER BY distance",
+        (serialize_float32(query_vec.tolist()), k),
+    ).fetchall()
+    results = []
+    for rowid, dist in hits:
+        path, start, end = db.execute(
+            "SELECT v.path, s.start_s, s.end_s FROM shots s"
+            " JOIN videos v ON v.id = s.video_id WHERE s.id = ?",
+            (rowid,),
+        ).fetchone()
+        score = 1 - dist * dist / 2  # cosine from L2 on unit vectors
+        results.append((path, start, end, score))
+    return results
 
 
 def fmt_time(seconds: float) -> str:
