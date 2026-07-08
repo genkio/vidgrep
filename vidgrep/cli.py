@@ -1,5 +1,7 @@
 import sys
 
+from vidgrep import __version__
+
 USAGE = """\
 vidgrep - natural-language search over local video files
 
@@ -10,6 +12,7 @@ commands:
   index    index video file(s) into the search database
   search   search indexed videos, print timestamps
   cut      search, then cut results into clips
+  version  print the installed version
 
 run vidgrep <command> --help for details
 """
@@ -21,6 +24,9 @@ def main() -> None:
         print(USAGE)
         return
     cmd = args[0]
+    if cmd in ("version", "--version", "-V"):
+        print(f"vidgrep {__version__}")
+        return
     # lazy imports keep --help instant, torch loads only when a command runs
     if cmd == "index":
         from vidgrep.index import main as cmd_main
