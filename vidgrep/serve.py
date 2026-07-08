@@ -252,6 +252,12 @@ PAGE = """<!doctype html>
            color: #fff; font-size: 15px; cursor: pointer; }
   button:hover { background: #2f6fe0; }
   #status { max-width: 900px; margin: 10px auto 0; color: #8b93a7; font-size: 13px; }
+  #history { display: flex; flex-wrap: wrap; gap: 6px; max-width: 900px; margin: 8px auto 0; }
+  .chip { padding: 5px 10px; border-radius: 999px; border: 1px solid #313747; background: #171a21;
+          color: #cdd3e0; font-size: 13px; cursor: pointer; max-width: 240px; overflow: hidden;
+          text-overflow: ellipsis; white-space: nowrap; }
+  .chip:hover { background: #232733; }
+  .chip.clear { color: #8b93a7; border-style: dashed; }
   main { padding: 10px; max-width: 1400px; margin: 0 auto; }
   .group { margin-bottom: 10px; }
   .group-head { display: flex; align-items: center; gap: 8px; padding: 8px 4px;
@@ -285,21 +291,27 @@ PAGE = """<!doctype html>
     <button>Search</button>
   </form>
   <div id="status"></div>
+  <div id="history"></div>
 </header>
 <main id="grid"></main>
 <script>
 const DEFAULT_K = __K__;
+const HKEY = 'vidgrep-history', HMAX = 15;
 const f = document.getElementById('f'), q = document.getElementById('q');
 const grid = document.getElementById('grid'), status = document.getElementById('status');
+const hist = document.getElementById('history');
 
-f.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const query = q.value.trim();
+f.addEventListener('submit', (e) => { e.preventDefault(); runSearch(q.value); });
+
+async function runSearch(query) {
+  query = query.trim();
   if (!query) return;
+  q.value = query;
   status.textContent = 'searching...';
   grid.innerHTML = '';
   const res = await fetch('/search?k=' + DEFAULT_K + '&q=' + encodeURIComponent(query));
   const { results } = await res.json();
+  addHistory(query);
   if (!results.length) { status.textContent = 'no matches'; return; }
   const groups = new Map();
   for (const r of results) {
@@ -309,7 +321,38 @@ f.addEventListener('submit', async (e) => {
   status.textContent = results.length + ' results across ' + groups.size +
                        (groups.size > 1 ? ' videos' : ' video');
   for (const [video, items] of groups) grid.appendChild(groupEl(video, items));
-});
+}
+
+// sessionStorage: history lives for the tab's lifetime, gone when it closes
+function loadHistory() {
+  try { return JSON.parse(sessionStorage.getItem(HKEY)) || []; } catch { return []; }
+}
+function addHistory(query) {
+  const h = [query, ...loadHistory().filter((x) => x !== query)].slice(0, HMAX);
+  sessionStorage.setItem(HKEY, JSON.stringify(h));
+  renderHistory();
+}
+function renderHistory() {
+  const h = loadHistory();
+  hist.innerHTML = '';
+  for (const query of h) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip';
+    chip.textContent = query;
+    chip.addEventListener('click', () => runSearch(query));
+    hist.appendChild(chip);
+  }
+  if (h.length) {
+    const clear = document.createElement('button');
+    clear.type = 'button';
+    clear.className = 'chip clear';
+    clear.textContent = 'clear';
+    clear.addEventListener('click', () => { sessionStorage.removeItem(HKEY); renderHistory(); });
+    hist.appendChild(clear);
+  }
+}
+renderHistory();
 
 function groupEl(video, items) {
   const sec = document.createElement('section');
