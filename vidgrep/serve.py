@@ -210,6 +210,8 @@ def main() -> None:
 
         local_map = local_video_map(args.videos)
 
+    # model load can take 15-30s; say so before blocking, or the terminal looks hung
+    print("loading model ...", flush=True)
     embed = make_embedder(args.encoder)
     cache = CACHE_DIR / args.db.expanduser().stem
     cache.mkdir(parents=True, exist_ok=True)
@@ -222,7 +224,7 @@ def main() -> None:
     print(f"  http://localhost:{args.port}")
     for ip in _lan_ips():
         print(f"  http://{ip}:{args.port}   (LAN / Tailscale)")
-    print("Ctrl-C to stop")
+    print("Ctrl-C to stop", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
