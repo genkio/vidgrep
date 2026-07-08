@@ -252,9 +252,18 @@ PAGE = """<!doctype html>
            color: #fff; font-size: 15px; cursor: pointer; }
   button:hover { background: #2f6fe0; }
   #status { max-width: 900px; margin: 10px auto 0; color: #8b93a7; font-size: 13px; }
-  main { display: grid; gap: 10px; padding: 10px;
-         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); max-width: 1400px;
-         margin: 0 auto; }
+  main { padding: 10px; max-width: 1400px; margin: 0 auto; }
+  .group { margin-bottom: 10px; }
+  .group-head { display: flex; align-items: center; gap: 8px; padding: 8px 4px;
+                cursor: pointer; user-select: none; border-bottom: 1px solid #232733; }
+  .group-head .chev { display: inline-block; color: #8b93a7; transition: transform .12s; }
+  .group.collapsed .chev { transform: rotate(-90deg); }
+  .group-head .gname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                       font-weight: 600; }
+  .group-head .gcount { color: #8b93a7; font-variant-numeric: tabular-nums; font-size: 13px; }
+  .group-body { display: grid; gap: 10px; margin: 10px 0 4px;
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .group.collapsed .group-body { display: none; }
   .card { background: #171a21; border: 1px solid #232733; border-radius: 10px;
           overflow: hidden; }
   .card video { width: 100%; display: block; background: #000; aspect-ratio: 16/9; }
@@ -291,9 +300,32 @@ f.addEventListener('submit', async (e) => {
   grid.innerHTML = '';
   const res = await fetch('/search?k=' + DEFAULT_K + '&q=' + encodeURIComponent(query));
   const { results } = await res.json();
-  status.textContent = results.length ? results.length + ' results' : 'no matches';
-  for (const r of results) grid.appendChild(card(r));
+  if (!results.length) { status.textContent = 'no matches'; return; }
+  const groups = new Map();
+  for (const r of results) {
+    if (!groups.has(r.video)) groups.set(r.video, []);
+    groups.get(r.video).push(r);
+  }
+  status.textContent = results.length + ' results across ' + groups.size +
+                       (groups.size > 1 ? ' videos' : ' video');
+  for (const [video, items] of groups) grid.appendChild(groupEl(video, items));
 });
+
+function groupEl(video, items) {
+  const sec = document.createElement('section');
+  sec.className = 'group';
+  const head = document.createElement('div');
+  head.className = 'group-head';
+  head.innerHTML = `<span class="chev">▾</span>
+    <span class="gname" title="${video}">${video}</span>
+    <span class="gcount">${items.length}</span>`;
+  head.addEventListener('click', () => sec.classList.toggle('collapsed'));
+  const body = document.createElement('div');
+  body.className = 'group-body';
+  for (const r of items) body.appendChild(card(r));
+  sec.append(head, body);
+  return sec;
+}
 
 function card(r) {
   const el = document.createElement('div');
@@ -304,7 +336,7 @@ function card(r) {
       <source src="${clip}" type="video/mp4">
     </video>
     <div class="meta">
-      <span class="name" title="${r.video}">${r.video} ${r.range}</span>
+      <span class="name">${r.range}</span>
       <span class="score">${r.score}</span>
     </div>
     <div class="actions">
