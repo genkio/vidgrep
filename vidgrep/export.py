@@ -39,7 +39,7 @@ def main() -> None:
     model, _, tokenizer = load_clip("cpu")
     model = model.float().eval()
 
-    ref = tokenizer(PROBES)  # [N, context_length] int64, the ground truth
+    ref = tokenizer(PROBES)  # ground truth to verify the portable tokenizer against
     context_length = ref.shape[1]
     nonzero = ref[0][ref[0] != 0]
     sot_id, eot_id = int(nonzero[0]), int(nonzero[-1])

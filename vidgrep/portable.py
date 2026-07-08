@@ -27,8 +27,8 @@ class Encoder:
         )
         self.input_name = self.sess.get_inputs()[0].name
 
-    # mirror open_clip's wrapping exactly: [sot] + bpe + [eot], zero-pad to context_length,
-    # keep eot last when truncating - verified against open_clip at export time
+    # must reproduce open_clip's token wrapping exactly (verified at export time);
+    # a silent mismatch would degrade every query
     def _tokens(self, text: str) -> np.ndarray:
         ctx = self.cfg["context_length"]
         sot, eot = self.cfg["sot_id"], self.cfg["eot_id"]
