@@ -12,7 +12,7 @@ vidgrep oneshot ~/Videos "a dog jumping into a lake" -k 5
 brew install genkio/tap/vidgrep
 ```
 
-First run downloads CLIP weights (~1.7 GB) to `~/.cache`. Optional: `brew install mpv` to jump straight to search results.
+First run downloads the model weights (~2 GB) to `~/.cache`. Optional: `brew install mpv` to jump straight to search results.
 
 ## Usage
 
@@ -72,7 +72,7 @@ vidgrep search "sunset over water" --db trips.db
 
 Constants at the top of `vidgrep/index.py` / `vidgrep/common.py`:
 
-- `MODEL_NAME` / `PRETRAINED`: `ViT-L-14` (default) is accurate; `ViT-B-32` (`EMBED_DIM = 512`) indexes ~4x faster, weaker results. Changing models requires re-indexing (delete `~/.vidgrep/index.db`).
+- `MODEL_NAME` / `PRETRAINED` / `EMBED_DIM`: the CLIP model. Any [open_clip](https://github.com/mlfoundations/open_clip) model works, including `hf-hub:<repo>` checkpoints; a plain `ViT-B-32` / `laion2b_s34b_b79k` / `512` indexes fastest with weaker results. Each index is locked to the model that built it; changing models requires a fresh re-index (delete `~/.vidgrep/index.db` or use a separate `--db`).
 - `MAX_UNIT_S` / `SPLIT_STEP_S`: long shots get one sample per 10 s.
 - `FALLBACK_WINDOW_S`: window size for footage with no scene cuts (e.g. GoPro).
 

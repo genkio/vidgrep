@@ -10,9 +10,9 @@ import sqlite_vec
 import torch
 from sqlite_vec import serialize_float32
 
-MODEL_NAME = "ViT-L-14"
-PRETRAINED = "laion2b_s32b_b82k"
-EMBED_DIM = 768
+MODEL_NAME = "hf-hub:woweenie/open-clip-vit-h-nsfw-finetune"
+PRETRAINED = None  # hf-hub repo bundles its own weights, no separate pretrained tag
+EMBED_DIM = 1024
 DEFAULT_DB = Path.home() / ".vidgrep" / "index.db"
 
 
@@ -53,8 +53,27 @@ def open_db(path: Path | str = DEFAULT_DB) -> sqlite3.Connection:
         CREATE VIRTUAL TABLE IF NOT EXISTS vec_shots USING vec0(
             embedding float[{EMBED_DIM}]
         );
+        CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT);
     """)
+    _check_model(db, p)
     return db
+
+
+# vectors from different models aren't comparable and differ in dimension, so a db is
+# locked to the model that built it - guard turns a cryptic dim mismatch into a clear message
+def _check_model(db: sqlite3.Connection, path: Path) -> None:
+    current = f"{MODEL_NAME}|{EMBED_DIM}"
+    row = db.execute("SELECT value FROM meta WHERE key = 'model'").fetchone()
+    if row is None:
+        if db.execute("SELECT count(*) FROM shots").fetchone()[0] > 0:
+            sys.exit(f"{path} was built by an older vidgrep; delete it and re-index.")
+        db.execute("INSERT INTO meta(key, value) VALUES('model', ?)", (current,))
+        db.commit()
+    elif row[0] != current:
+        sys.exit(
+            f"{path} was built with {row[0]}, active model is {current}.\n"
+            "delete it and re-index, or use --db to keep a separate index per model."
+        )
 
 
 def parse_jobs(spec: list[str]) -> list[tuple[str, Path]]:
