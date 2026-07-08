@@ -41,6 +41,24 @@ vidgrep cut "a dog running on a beach" -k 5 --pad 1
 vidgrep cut "a dog running on a beach" ./dog "sunset over water" ./sunset
 ```
 
+### Cutting on another machine (no PyTorch)
+
+Indexing needs PyTorch (Apple Silicon / CUDA). Cutting only needs to turn your query
+into a vector, so it can run anywhere, including an Intel Mac, once you export a small
+encoder. Index on the capable machine, then move two things to the other machine:
+
+```bash
+# on the indexing machine (once):
+vidgrep export-encoder --out ./encoder      # writes an ONNX text encoder (~1.4 GB)
+
+# copy index.db + the encoder/ folder + your videos to the other machine, then:
+vidgrep cut "sunset over water" ./out --db index.db --encoder ./encoder --videos ~/Movies
+```
+
+`--encoder` runs the query through ONNX Runtime instead of PyTorch. `--videos` remaps the
+indexed source paths to local files **matched by filename**, so absolute paths can differ
+between machines. On Intel macOS, `brew install` gives you exactly this torch-free subset.
+
 Search output: score (cosine, ~0.3 = strong hit, rank matters not the number), file, time range, ready-to-paste mpv command.
 
 Re-running `vidgrep index` skips already-indexed files (re-indexes if the file changed).
@@ -82,9 +100,13 @@ Requires [uv](https://docs.astral.sh/uv/) and ffmpeg.
 
 ```bash
 git clone https://github.com/genkio/vidgrep && cd vidgrep
-uv sync
+uv sync --extra index          # --extra index pulls torch + the indexing stack
 uv run vidgrep search "..."
 ```
+
+`uv sync` alone installs the torch-free core (search/cut via an exported encoder). The
+`index` extra adds PyTorch, open_clip, OpenCV, and scene detection for indexing and
+`export-encoder`.
 
 ## Roadmap
 

@@ -9,9 +9,8 @@ from PIL import Image
 from scenedetect import ContentDetector, detect
 from sqlite_vec import serialize_float32
 
-from vidgrep.common import DEFAULT_DB, MODEL_NAME, get_device, load_clip, open_db
+from vidgrep.common import DEFAULT_DB, MODEL_NAME, VIDEO_EXTS, get_device, load_clip, open_db
 
-VIDEO_EXTS = {".avi", ".m4v", ".mkv", ".mov", ".mp4", ".mpeg", ".mpg", ".ts", ".webm", ".wmv"}
 MAX_UNIT_S = 20.0
 SPLIT_STEP_S = 10.0
 FALLBACK_WINDOW_S = 10.0

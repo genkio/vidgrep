@@ -1,17 +1,26 @@
 [project]
 name = "vidgrep"
-version = "0.3.1"
+version = "0.4.0"
 description = "Natural-language search over local video files (CLIP + sqlite-vec, fully local)"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
+# core = search/cut/export-consume path; installs without torch (works on Intel macOS)
 dependencies = [
     "numpy",
+    "onnxruntime>=1.23,<1.24",
+    "sqlite-vec>=0.1.6",
+    "tokenizers>=0.15",
+]
+
+# indexing + encoder export need the full CLIP stack; arm64/CUDA only in practice
+[project.optional-dependencies]
+index = [
+    "onnxscript>=0.1",
     "open-clip-torch>=2.24",
     "opencv-python>=4.9",
     "pillow",
     "scenedetect>=0.6.3",
-    "sqlite-vec>=0.1.6",
     "torch>=2.3",
 ]
 

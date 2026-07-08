@@ -5,24 +5,30 @@ from pathlib import Path
 
 os.environ.setdefault("HF_HUB_VERBOSITY", "error")  # silence hub token nag on every run
 
-import open_clip
 import sqlite_vec
-import torch
 from sqlite_vec import serialize_float32
+
+# torch/open_clip are imported lazily inside the functions that need them, so the
+# search/cut path stays importable on machines where torch can't install (Intel macOS)
 
 MODEL_NAME = "hf-hub:woweenie/open-clip-vit-h-nsfw-finetune"
 PRETRAINED = None  # hf-hub repo bundles its own weights, no separate pretrained tag
 EMBED_DIM = 1024
 DEFAULT_DB = Path.home() / ".vidgrep" / "index.db"
+VIDEO_EXTS = {".avi", ".m4v", ".mkv", ".mov", ".mp4", ".mpeg", ".mpg", ".ts", ".webm", ".wmv"}
 
 
 def get_device() -> str:
+    import torch
+
     if torch.cuda.is_available():
         return "cuda"
     return "mps" if torch.backends.mps.is_available() else "cpu"
 
 
 def load_clip(device: str):
+    import open_clip
+
     model, _, preprocess = open_clip.create_model_and_transforms(
         MODEL_NAME, pretrained=PRETRAINED
     )
@@ -84,7 +90,9 @@ def parse_jobs(spec: list[str]) -> list[tuple[str, Path]]:
     return [(spec[i], Path(spec[i + 1])) for i in range(0, len(spec), 2)]
 
 
-def embed_text(model, tokenizer, device: str, query: str) -> torch.Tensor:
+def embed_text(model, tokenizer, device: str, query: str):
+    import torch
+
     with torch.no_grad():
         feat = model.encode_text(tokenizer([query]).to(device))
     return (feat / feat.norm(dim=-1, keepdim=True))[0].cpu()
@@ -92,12 +100,13 @@ def embed_text(model, tokenizer, device: str, query: str) -> torch.Tensor:
 
 def search_shots(
     db: sqlite3.Connection,
-    query_vec: torch.Tensor,
+    query_vec,
     k: int,
     video_ids: list[int] | None = None,
 ) -> list[tuple[str, float, float, float]]:
+    vec = query_vec.tolist() if hasattr(query_vec, "tolist") else list(query_vec)
     sql = "SELECT rowid, distance FROM vec_shots WHERE embedding MATCH ? AND k = ?"
-    params: list = [serialize_float32(query_vec.tolist()), k]
+    params: list = [serialize_float32(vec), k]
     if video_ids:
         placeholders = ",".join("?" * len(video_ids))
         sql += f" AND rowid IN (SELECT id FROM shots WHERE video_id IN ({placeholders}))"
