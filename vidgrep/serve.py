@@ -192,6 +192,7 @@ def main() -> None:
     ap.add_argument("--host", default="0.0.0.0", help="bind address (0.0.0.0 = reachable over LAN/Tailscale)")
     ap.add_argument("--port", type=int, default=8000)
     ap.add_argument("-k", type=int, default=12, help="results per search")
+    ap.add_argument("--all", action="store_true", help="show every match, ignoring -k (heavy on a large index)")
     ap.add_argument("--db", type=Path, default=DEFAULT_DB)
     ap.add_argument("--pad", type=float, default=0.5, help="seconds added before/after each clip")
     ap.add_argument("--encoder", type=Path, help="exported encoder bundle; serve without PyTorch")
@@ -202,8 +203,11 @@ def main() -> None:
         sys.exit("ffmpeg not found, install with: brew install ffmpeg")
 
     db = open_db(args.db, check_same_thread=False)
-    if db.execute("SELECT count(*) FROM shots").fetchone()[0] == 0:
+    total = db.execute("SELECT count(*) FROM shots").fetchone()[0]
+    if total == 0:
         sys.exit("index is empty, run vidgrep index first")
+    # --all = no cap: ask for as many results as there are shots (sqlite-vec needs a concrete k)
+    k = total if args.all else args.k
 
     local_map = None
     if args.videos:
@@ -218,13 +222,15 @@ def main() -> None:
     cache.mkdir(parents=True, exist_ok=True)
 
     server = ThreadingHTTPServer((args.host, args.port), Handler)
-    server.state = State(db, embed, local_map, cache, args.pad, args.k)
+    server.state = State(db, embed, local_map, cache, args.pad, k)
     server.daemon_threads = True
 
     print(f"vidgrep serving on port {args.port}:")
     print(f"  http://localhost:{args.port}")
     for ip in _lan_ips():
         print(f"  http://{ip}:{args.port}   (LAN / Tailscale)")
+    if args.all:
+        print(f"--all: up to {total} results per search (every shot, ranked)")
     print("Ctrl-C to stop", flush=True)
     try:
         server.serve_forever()
