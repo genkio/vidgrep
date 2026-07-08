@@ -7,26 +7,33 @@ from pathlib import Path
 from vidgrep.common import DEFAULT_DB, fmt_time, open_db, parse_jobs, search_shots
 
 
-def export_clips(results: list[tuple[str, float, float, float]], out: Path, pad: float) -> None:
-    out.mkdir(parents=True, exist_ok=True)
-    for rank, (path, start, end, score) in enumerate(results, 1):
-        src = Path(path)
-        if not src.exists():
-            print(f"{rank:2d}  source moved or deleted, skipped: {src}")
-            continue
-        cut_start = max(0.0, start - pad)
-        duration = end + pad - cut_start
-        clip = out / f"{rank:02d}_{src.stem}_{int(start)}s.mp4"
-        cmd = [
+def ffmpeg_cut(src: Path, start: float, end: float, pad: float, dest: Path) -> None:
+    cut_start = max(0.0, start - pad)
+    duration = end + pad - cut_start
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        [
             "ffmpeg", "-y", "-loglevel", "error",
             "-ss", f"{cut_start:.3f}", "-i", str(src), "-t", f"{duration:.3f}",
             # re-encode: stream copy would snap to keyframes and miss the shot start
             "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
-            "-c:a", "aac",
-            str(clip),
-        ]
+            "-c:a", "aac", "-movflags", "+faststart",
+            str(dest),
+        ],
+        check=True,
+    )
+
+
+def export_clips(results, out: Path, pad: float) -> None:
+    out.mkdir(parents=True, exist_ok=True)
+    for rank, (_id, path, start, end, score) in enumerate(results, 1):
+        src = Path(path)
+        if not src.exists():
+            print(f"{rank:2d}  source moved or deleted, skipped: {src}")
+            continue
+        clip = out / f"{rank:02d}_{src.stem}_{int(start)}s.mp4"
         try:
-            subprocess.run(cmd, check=True)
+            ffmpeg_cut(src, start, end, pad, clip)
         except subprocess.CalledProcessError:
             print(f"{rank:2d}  ffmpeg failed on {src.name}, skipped")
             continue
@@ -71,7 +78,7 @@ def main() -> None:
     if db.execute("SELECT count(*) FROM shots").fetchone()[0] == 0:
         sys.exit("index is empty, run vidgrep index first")
 
-    embed = _make_embedder(args.encoder)
+    embed = make_embedder(args.encoder)
     local_map = None
     if args.videos:
         from vidgrep.portable import local_video_map, remap_paths
@@ -87,7 +94,7 @@ def main() -> None:
         export_clips(results, out, args.pad)
 
 
-def _make_embedder(encoder_dir: Path | None):
+def make_embedder(encoder_dir: Path | None):
     if encoder_dir is not None:
         from vidgrep.portable import Encoder
 

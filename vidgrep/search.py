@@ -20,6 +20,6 @@ def main() -> None:
     model, _, tokenizer = load_clip(device)
     results = search_shots(db, embed_text(model, tokenizer, device, args.query), args.k)
 
-    for rank, (path, start, end, score) in enumerate(results, 1):
+    for rank, (_id, path, start, end, score) in enumerate(results, 1):
         print(f"{rank:2d}  {score:.3f}  {Path(path).name}  {fmt_time(start)}-{fmt_time(end)}")
         print(f'    mpv --start={int(start)} "{path}"')

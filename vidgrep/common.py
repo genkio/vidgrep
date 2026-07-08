@@ -36,10 +36,10 @@ def load_clip(device: str):
     return model.to(device).eval(), preprocess, tokenizer
 
 
-def open_db(path: Path | str = DEFAULT_DB) -> sqlite3.Connection:
+def open_db(path: Path | str = DEFAULT_DB, check_same_thread: bool = True) -> sqlite3.Connection:
     p = Path(path).expanduser()
     p.parent.mkdir(parents=True, exist_ok=True)
-    db = sqlite3.connect(str(p))
+    db = sqlite3.connect(str(p), check_same_thread=check_same_thread)
     db.enable_load_extension(True)
     sqlite_vec.load(db)
     db.enable_load_extension(False)
@@ -103,7 +103,7 @@ def search_shots(
     query_vec,
     k: int,
     video_ids: list[int] | None = None,
-) -> list[tuple[str, float, float, float]]:
+) -> list[tuple[int, str, float, float, float]]:
     vec = query_vec.tolist() if hasattr(query_vec, "tolist") else list(query_vec)
     sql = "SELECT rowid, distance FROM vec_shots WHERE embedding MATCH ? AND k = ?"
     params: list = [serialize_float32(vec), k]
@@ -120,7 +120,7 @@ def search_shots(
             (rowid,),
         ).fetchone()
         score = 1 - dist * dist / 2  # cosine from L2 on unit vectors
-        results.append((path, start, end, score))
+        results.append((rowid, path, start, end, score))
     return results
 
 

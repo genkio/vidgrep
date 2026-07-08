@@ -55,7 +55,7 @@ def local_video_map(root: Path) -> dict[str, str]:
 
 def remap_paths(results, local_map: dict[str, str]):
     remapped = []
-    for path, start, end, score in results:
+    for sid, path, start, end, score in results:
         local = local_map.get(Path(path).name, path)
-        remapped.append((local, start, end, score))
+        remapped.append((sid, local, start, end, score))
     return remapped

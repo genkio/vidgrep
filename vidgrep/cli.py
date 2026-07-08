@@ -12,6 +12,7 @@ commands:
   index          index video file(s) into the search database
   search         search indexed videos, print timestamps
   cut            search, then cut results into clips
+  serve          start a local web UI to search, play, and download clips
   export-encoder export a portable text encoder for torch-free cutting
   version        print the installed version
 
@@ -37,6 +38,8 @@ def main() -> None:
         from vidgrep.cut import main as cmd_main
     elif cmd == "oneshot":
         from vidgrep.oneshot import main as cmd_main
+    elif cmd == "serve":
+        from vidgrep.serve import main as cmd_main
     elif cmd == "export-encoder":
         from vidgrep.export import main as cmd_main
     else:
