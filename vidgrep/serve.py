@@ -131,6 +131,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")  # UI/JSON are dynamic; avoid stale mobile cache
         self.end_headers()
         self.wfile.write(body)
 
@@ -251,20 +252,20 @@ PAGE = """<!doctype html>
            color: #fff; font-size: 15px; cursor: pointer; }
   button:hover { background: #2f6fe0; }
   #status { max-width: 900px; margin: 10px auto 0; color: #8b93a7; font-size: 13px; }
-  main { display: grid; gap: 16px; padding: 16px;
-         grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); max-width: 1400px;
+  main { display: grid; gap: 10px; padding: 10px;
+         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); max-width: 1400px;
          margin: 0 auto; }
   .card { background: #171a21; border: 1px solid #232733; border-radius: 10px;
           overflow: hidden; }
   .card video { width: 100%; display: block; background: #000; aspect-ratio: 16/9; }
   .meta { display: flex; justify-content: space-between; align-items: center;
-          padding: 8px 12px; gap: 8px; }
+          padding: 6px 8px; gap: 6px; font-size: 12px; }
   .meta .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .meta .score { color: #8b93a7; font-variant-numeric: tabular-nums; }
-  .actions { display: flex; gap: 8px; padding: 0 12px 12px; }
+  .actions { display: flex; gap: 6px; padding: 0 8px 8px; }
   .actions a, .actions button { flex: 1; text-align: center; text-decoration: none;
-          padding: 7px; border-radius: 7px; background: #232733; color: #e6e6e6;
-          font-size: 13px; border: 0; cursor: pointer; }
+          padding: 6px; border-radius: 6px; background: #232733; color: #e6e6e6;
+          font-size: 12px; border: 0; cursor: pointer; }
   .actions a:hover, .actions button:hover { background: #2c3242; }
 </style>
 </head>

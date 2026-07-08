@@ -117,6 +117,7 @@ Requires [uv](https://docs.astral.sh/uv/) and ffmpeg.
 git clone https://github.com/genkio/vidgrep && cd vidgrep
 uv sync --extra index          # --extra index pulls torch + the indexing stack
 uv run vidgrep search "..."
+uv run --extra index vidgrep serve --db ~/.vidgrep/index.db   # run the web UI from source
 ```
 
 `uv sync` alone installs the torch-free core (search/cut via an exported encoder). The
