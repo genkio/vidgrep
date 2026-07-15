@@ -328,6 +328,17 @@ PAGE = """<!doctype html>
           padding: 6px; border-radius: 6px; background: #232733; color: #e6e6e6;
           font-size: 12px; border: 0; cursor: pointer; }
   .actions a:hover, .actions button:hover { background: #2c3242; }
+  #overlay { position: fixed; inset: 0; z-index: 10; background: rgba(8,10,14,.94);
+             display: flex; flex-direction: column; }
+  #overlay[hidden] { display: none; }
+  #overlay .bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+                  font-size: 13px; color: #cdd3e0; }
+  #overlay .bar .title { flex: 1; overflow: hidden; text-overflow: ellipsis;
+                         white-space: nowrap; }
+  #overlay .bar .pos { color: #8b93a7; font-variant-numeric: tabular-nums; }
+  #overlay .bar button { padding: 6px 12px; background: #232733; font-size: 13px; }
+  #overlay .bar button:hover { background: #2c3242; }
+  #player { width: 100%; flex: 1; min-height: 0; background: #000; }
 </style>
 </head>
 <body>
@@ -340,6 +351,16 @@ PAGE = """<!doctype html>
   <div id="history"></div>
 </header>
 <main id="grid"></main>
+<div id="overlay" hidden>
+  <div class="bar">
+    <span class="title" id="ov-title"></span>
+    <span class="pos" id="ov-pos"></span>
+    <button type="button" id="ov-prev">&#8249; prev</button>
+    <button type="button" id="ov-next">next &#8250;</button>
+    <button type="button" id="ov-close">&#10005;</button>
+  </div>
+  <video id="player" controls playsinline></video>
+</div>
 <script>
 const HKEY = 'vidgrep-history', HMAX = 15;
 const f = document.getElementById('f'), q = document.getElementById('q');
@@ -433,7 +454,8 @@ function card(r, video) {
   el.className = 'card';
   const clip = '/clip/' + r.id + '.mp4';
   el.innerHTML = `
-    <video controls preload="none" poster="/thumb/${r.id}.jpg" playsinline>
+    <video controls preload="none" poster="/thumb/${r.id}.jpg" playsinline
+           data-id="${r.id}" data-name="${video}" data-range="${r.range}">
       <source src="${clip}" type="video/mp4">
     </video>
     <div class="meta">
@@ -442,15 +464,60 @@ function card(r, video) {
     </div>
     <div class="actions">
       <a href="${clip}" download="${video}_${r.range}.mp4">Save</a>
-      <button type="button">Fullscreen</button>
+      <button type="button">Play all</button>
     </div>`;
   const v = el.querySelector('video');
   v.addEventListener('click', () => { if (v.paused) v.play(); });
-  el.querySelector('.actions button').addEventListener('click', () => {
-    (v.requestFullscreen || v.webkitEnterFullscreen).call(v);
-  });
+  el.querySelector('.actions button').addEventListener('click', () => openPlayer(v.dataset.id));
   return el;
 }
+
+// overlay player: watch results back-to-back across group boundaries. In-page
+// rather than the fullscreen API: native fullscreen players ignore our src swap
+// on 'ended' on some setups.
+const overlay = document.getElementById('overlay');
+const player = document.getElementById('player');
+let queue = [], qi = -1;
+
+function openPlayer(startId) {
+  queue = [...grid.querySelectorAll('.card video')].map((v) => ({
+    id: v.dataset.id, name: v.dataset.name, range: v.dataset.range,
+  }));
+  overlay.hidden = false;
+  playAt(queue.findIndex((c) => c.id === startId));
+}
+
+function playAt(i) {
+  if (i < 0 || i >= queue.length) return;
+  qi = i;
+  const c = queue[i];
+  document.getElementById('ov-title').textContent = c.name + '  ' + c.range;
+  document.getElementById('ov-pos').textContent = (i + 1) + ' / ' + queue.length;
+  player.src = '/clip/' + c.id + '.mp4';
+  player.play();
+  warm(queue[i + 1] && queue[i + 1].id);
+}
+
+function closePlayer() {
+  overlay.hidden = true;
+  player.pause();
+  player.removeAttribute('src');
+  player.load();
+}
+
+// 1-byte range fetch makes the server cut the next clip during playback, so the
+// switch doesn't stall on ffmpeg
+function warm(id) {
+  if (id) fetch('/clip/' + id + '.mp4', { headers: { Range: 'bytes=0-0' } }).catch(() => {});
+}
+
+player.addEventListener('ended', () => playAt(qi + 1));
+document.getElementById('ov-prev').addEventListener('click', () => playAt(qi - 1));
+document.getElementById('ov-next').addEventListener('click', () => playAt(qi + 1));
+document.getElementById('ov-close').addEventListener('click', closePlayer);
+document.addEventListener('keydown', (e) => {
+  if (!overlay.hidden && e.key === 'Escape') closePlayer();
+});
 </script>
 </body>
 </html>
